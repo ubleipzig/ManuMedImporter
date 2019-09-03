@@ -1,0 +1,71 @@
+// Apply the java plugin to add support for Java
+apply plugin: 'java'
+apply plugin: 'application'
+
+// In this section you declare where to find the dependencies of your project
+repositories {
+    // Use 'jcenter' for resolving your dependencies.
+    // You can declare any Maven/Ivy/file repository here.
+    jcenter()
+    maven {
+    	url "https://services.ub.uni-leipzig.de/nexus/repository/maven-releases"
+    }
+}
+
+compileJava.options.encoding = 'UTF-8'
+
+tasks.withType(JavaCompile) {
+	options.encoding = 'UTF-8'
+}
+
+task mods(type: Jar, dependsOn: [':compileJava', ':processResources']) {
+
+	archiveBaseName = "ModsImport"
+	
+	mainClassName = "org.ub.manumed.Mods"
+	
+	from files(sourceSets.main.output.classesDirs)
+	from {configurations.compile.collect {it.isDirectory() ? it : zipTree(it) }}
+	manifest {
+		attributes 'Main-Class': 'org.ub.manumed.Mods'
+	}
+
+}
+
+task mets(type: Jar, dependsOn: [':compileJava', ':processResources']) {
+
+	archiveBaseName = "MetsImport"
+	
+	mainClassName = "org.ub.manumed.Mets"
+	
+	from files(sourceSets.main.output.classesDirs)
+	from {configurations.compile.collect {it.isDirectory() ? it : zipTree(it) }}
+	manifest {
+		attributes 'Main-Class': 'org.ub.manumed.Mets'
+	}
+
+}
+
+task repair(type: Jar, dependsOn: [':compileJava', ':processResources']) {
+
+	archiveBaseName = "repairMods"
+	
+	mainClassName = "org.ub.manumed.RepairMods"
+	
+	from files(sourceSets.main.output.classesDirs)
+	from {configurations.compile.collect {it.isDirectory() ? it : zipTree(it) }}
+	manifest {
+		attributes 'Main-Class': 'org.ub.manumed.RepairMods'
+	}
+
+}
+
+// In this section you declare the dependencies for your production and test code
+dependencies {
+	compile 'org.jdom:jdom2:2.0.6'
+	compile group: 'jaxen', name: 'jaxen', version: '1.1.6'
+	compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
+	compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.28'
+	testCompile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.28'
+
+}
