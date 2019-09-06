@@ -82,7 +82,7 @@ public class Mods {
 		String xPath = mapping.getProperty(definition);
 		xpe = fact.compile(xPath, Filters.attribute(),null, spaceList);
 		String value = "";
-		if (!(xpe.evaluateFirst(docHida) == null)) {
+		if (xpe.evaluateFirst(docHida) != null) {
 			value = ((Attribute) xpe.evaluateFirst(docHida)).getValue();
 			Element ms = new Element("metadata", kitodo).setAttribute("name", tag).setText(value);
 			intern.addContent(ms);
@@ -94,7 +94,7 @@ public class Mods {
 		String xPath = mapping.getProperty("erschliessung");
 		xpe = fact.compile(xPath, Filters.attribute(),null, spaceList);
 		String value;
-		if (!(xpe.evaluateFirst(docHida) == null)) {
+		if (xpe.evaluateFirst(docHida) != null) {
 			value = ((Attribute) xpe.evaluateFirst(docHida)).getValue();
 			Element ms = new Element("metadata", kitodo).setAttribute("name", "ms_record_id").setText("http://www.manuscripta-mediaevalia.de/dokumente/html/obj" + value);
 			intern.addContent(ms);
@@ -112,31 +112,31 @@ public class Mods {
 		String hash = mapping.getProperty("hash");
 		xpe = fact.compile(hash, Filters.text(), null, spaceList);
 		String folderHash = ((Text) xpe.evaluateFirst(docMeta)).getText();
-		Element msIdentifyingShelfmark = new Element("metadata", kitodo).setAttribute("name", "ms_identifying_shelfmark_hash").setText(folderHash.substring(folderHash.lastIndexOf("/") + 1, folderHash.lastIndexOf("_")));
+		Element msIdentifyingShelfmark = new Element("metadata", kitodo).setAttribute("name", "ms_identifying_shelfmark_hash").setText(folderHash.substring(folderHash.lastIndexOf('/') + 1, folderHash.lastIndexOf('_')));
 		intern.addContent(msIdentifyingShelfmark);
 	}
 
 	private void setAttribute(String definition, String tag) {
 		String xPath = mapping.getProperty(definition);
 		xpe = fact.compile(xPath, Filters.attribute(), null, spaceList);
-		if (!(xpe.evaluateFirst(docHida) == null)) {
+		if (xpe.evaluateFirst(docHida) != null) {
 			String value = ((Attribute) xpe.evaluateFirst(docHida)).getValue();
 			if (value.contains("&")) {
 				int i = 0;
-				if (value.indexOf("&", i) == value.lastIndexOf("&")) {
-					String child = value.substring(i, value.lastIndexOf("&") - 1);
+				if (value.indexOf('&', i) == value.lastIndexOf('&')) {
+					String child = value.substring(i, value.lastIndexOf('&') - 1);
 					Element ms = new Element("metadata", kitodo).setAttribute("name", tag).setText(child);
 					intern.addContent(ms);
 				} else {
-					while (value.indexOf("&", i) != value.lastIndexOf("&")) {
-						int j = value.indexOf("&", i);
+					while (value.indexOf('&', i) != value.lastIndexOf('&')) {
+						int j = value.indexOf('&', i);
 						String child = value.substring(i, j - 1);
 						Element ms = new Element("metadata", kitodo).setAttribute("name", tag).setText(child);
 						i = j + 2;
 						intern.addContent(ms);
 					}
 				}
-				String child = value.substring(value.lastIndexOf("&") + 2);
+				String child = value.substring(value.lastIndexOf('&') + 2);
 				Element ms = new Element("metadata", kitodo).setAttribute("name", tag).setText(child);
 				intern.addContent(ms);
 			} else {
@@ -178,8 +178,8 @@ public class Mods {
 					}
 
 					if (value.contains("/")) {
-						intern.addContent(new Element("metadata", kitodo).setAttribute("name","ms_dating_not_before").setText(value.substring(0, value.indexOf("/"))));
-						intern.addContent(new Element("metadata", kitodo).setAttribute("name","ms_dating_not_after").setText(value.substring(value.indexOf("/") + 1)));
+						intern.addContent(new Element("metadata", kitodo).setAttribute("name","ms_dating_not_before").setText(value.substring(0, value.indexOf('/'))));
+						intern.addContent(new Element("metadata", kitodo).setAttribute("name","ms_dating_not_after").setText(value.substring(value.indexOf('/') + 1)));
 					} else {
 						intern.addContent(new Element("metadata", kitodo).setAttribute("name", "ms_dated").setText(value));
 					}
@@ -188,113 +188,76 @@ public class Mods {
 		}
 	}
 
-	private void setAuthor(String definition) {
-		String xPath = mapping.getProperty(definition);
-		xpe = fact.compile(xPath, Filters.element(), null, spaceList);
+	private void setResponsibility(String definition, String tag, List<String> listName, List<String> listAuthority) {
+        String xPath = mapping.getProperty(definition);
+        xpe = fact.compile(xPath, Filters.element(), null, spaceList);
 
-		List<Element> listAuthors = xpe.evaluate(docHida);
-		for(Element a:listAuthors)
-		{
-			Element msAuthor = new Element("metadata", kitodo).setAttribute("name","ms_author").setAttribute("type","person");
+        List<Element> listResponse = xpe.evaluate(docHida);
+        for(Element r:listResponse) {
+            Element msResponse = new Element("metadata", kitodo).setAttribute("name", tag).setAttribute("type", "person");
+            List<Element> listChildren = r.getChildren();
+            for(Element c:listChildren) {
+                if(listName.size() == 1) {
+                    if (c.getAttributeValue("Type").equals(listName.get(0))) {
+                        Element firstName = new Element("firstName", kitodo).setText(c.getAttributeValue("Value"));
+                        Element displayName = new Element("displayName", kitodo).setText(c.getAttributeValue("Value"));
+                        msResponse.addContent(firstName);
+                        msResponse.addContent(displayName);
+                    }
+                } else {
+                    if (c.getAttributeValue("Type").equals(listName.get(0)) || c.getAttributeValue("Type").equals(listName.get(1))) {
+                        Element firstName = new Element("firstName", kitodo).setText(c.getAttributeValue("Value"));
+                        Element displayName = new Element("displayName", kitodo).setText(c.getAttributeValue("Value"));
+                        msResponse.addContent(firstName);
+                        msResponse.addContent(displayName);
+                    }
+                }
+                if(listAuthority.size() == 1) {
+                    if (c.getAttributeValue("Type").equals(listAuthority.get(0))) {
+                        Element authorityID = new Element("authorityID", kitodo).setText("gnd");
+                        Element authorityURI = new Element("authorityURI", kitodo).setText("http://d-nb.info/gnd/");
+                        Element authorityValue = new Element("authorityValue", kitodo).setText("http://d-nb.info/gnd/" + c.getAttributeValue("Value"));
+                        msResponse.addContent(authorityID);
+                        msResponse.addContent(authorityURI);
+                        msResponse.addContent(authorityValue);
+                    }
+                } else {
+                    if (c.getAttributeValue("Type").equals(listAuthority.get(0)) || c.getAttributeValue("Type").equals(listAuthority.get(1))) {
+                        Element authorityID = new Element("authorityID", kitodo).setText("gnd");
+                        Element authorityURI = new Element("authorityURI", kitodo).setText("http://d-nb.info/gnd/");
+                        Element authorityValue = new Element("authorityValue", kitodo).setText("http://d-nb.info/gnd/" + c.getAttributeValue("Value"));
+                        msResponse.addContent(authorityID);
+                        msResponse.addContent(authorityURI);
+                        msResponse.addContent(authorityValue);
+                    }
+                }
+            }
+            intern.addContent(msResponse);
+        }
+    }
 
-			List<Element> listChilds = a.getChildren();
-			for (Element c:listChilds) {
-				if (c.getAttributeValue("Type").equals("4100") || c.getAttributeValue("Type").equals("4100gi")) {
-					Element firstName = new Element("firstName", kitodo).setText(c.getAttributeValue("Value"));
-					Element displayName = new Element("displayName", kitodo).setText(c.getAttributeValue("Value"));
-					msAuthor.addContent(firstName);
-					msAuthor.addContent(displayName);
-				}
-				if (c.getAttributeValue("Type").equals("z001")) {
-					Element authorityID = new Element("authorityID", kitodo).setText("gnd");
-					Element authorityURI = new Element("authorityURI", kitodo).setText("http://d-nb.info/gnd/");
-					Element authorityValue = new Element("authorityValue", kitodo).setText("http://d-nb.info/gnd/" + c.getAttributeValue("Value"));
-					msAuthor.addContent(authorityID);
-					msAuthor.addContent(authorityURI);
-					msAuthor.addContent(authorityValue);
-				}
-			}
+    private Element createElements() {
+        Element dmdSec = new Element("dmdSec", mets);
+        Element mdWrap = new Element("mdWrap", mets);
+        mdWrap.setAttribute("MDTYPE", "MODS");
+        Element xmlData = new Element("xmlData", mets);
+        Element mod = new Element("mods", mods);
+        Element extension = new Element("extension", mods);
+        Element goobi = new Element("goobi", kitodo);
 
-			intern.addContent(msAuthor);
-		}
-	}
+        extension.addContent(goobi);
+        mod.addContent(extension);
+        xmlData.addContent(mod);
+        mdWrap.addContent(xmlData);
+        dmdSec.addContent(mdWrap);
 
-	private void setPersons(String definition) {
-		String xPath = mapping.getProperty(definition);
-		xpe = fact.compile(xPath, Filters.element(), null, spaceList);
-
-		List<Element> listPersons = xpe.evaluate(docHida);
-		for (Element p:listPersons) {
-			Element msPreviousOwnerPerson = new Element("metadata", kitodo).setAttribute("name","ms_previous_owner_person").setAttribute("type","person");
-
-			List<Element> listChilds = p.getChildren();
-			for(Element c:listChilds) {
-				if(c.getAttributeValue("Type").equals("4100") || c.getAttributeValue("Type").equals("4100gi"))
-				{
-					Element firstName = new Element("firstName", kitodo).setText(c.getAttributeValue("Value"));
-					Element displayName = new Element("displayName", kitodo).setText(c.getAttributeValue("Value"));
-					msPreviousOwnerPerson.addContent(firstName);
-					msPreviousOwnerPerson.addContent(displayName);
-				}
-				if(c.getAttributeValue("Type").equals("z001") || c.getAttributeValue("Type").equals("y001"))
-				{
-					Element authorityID = new Element("authorityID", kitodo).setText("gnd");
-					Element authorityURI = new Element("authorityURI", kitodo).setText("http://d-nb.info/gnd/");
-					Element authorityValue = new Element("authorityValue", kitodo).setText("http://d-nb.info/gnd/" + c.getAttributeValue("Value"));
-					msPreviousOwnerPerson.addContent(authorityID);
-					msPreviousOwnerPerson.addContent(authorityURI);
-					msPreviousOwnerPerson.addContent(authorityValue);
-				}
-			}
-
-			intern.addContent(msPreviousOwnerPerson);
-		}
-	}
-
-	private void setInstitution(String definition) {
-		String xPath = mapping.getProperty(definition);
-		xpe = fact.compile(xPath, Filters.element(), null, spaceList);
-
-		List<Element> listInstitutions = xpe.evaluate(docHida);
-		for(Element s:listInstitutions)
-		{
-			Element msPreviousOwnerInstitution = new Element("metadata", kitodo).setAttribute("name","ms_previous_owner_institution").setAttribute("type","person");
-
-			List<Element> childs = s.getChildren();
-			for(Element c:childs)
-			{
-				if(c.getAttributeValue("Type").equals("4600"))
-				{
-					Element firstName = new Element("firstName", kitodo).setText(c.getAttributeValue("Value"));
-					Element displayName = new Element("displayName", kitodo).setText(c.getAttributeValue("Value"));
-					msPreviousOwnerInstitution.addContent(firstName);
-					msPreviousOwnerInstitution.addContent(displayName);
-				}
-				if(c.getAttributeValue("Type").equals("4998"))
-				{
-					Element authorityID = new Element("authorityID", kitodo).setText("gnd");
-					Element authorityURI = new Element("authorityURI", kitodo).setText("http://d-nb.info/gnd/");
-					Element authorityValue = new Element("authorityValue", kitodo).setText("http://d-nb.info/gnd/" + c.getAttributeValue("Value"));
-					msPreviousOwnerInstitution.addContent(authorityID);
-					msPreviousOwnerInstitution.addContent(authorityURI);
-					msPreviousOwnerInstitution.addContent(authorityValue);
-				}
-			}
-
-			intern.addContent(msPreviousOwnerInstitution);
-		}
-	}
+        return dmdSec;
+    }
 
 	private int setHost(String definition) {
 		int dmd = 1;
 
-		Element dmdSec = new Element("dmdSec", mets);
-		Element mdWrap = new Element("mdWrap", mets);
-		mdWrap.setAttribute("MDTYPE", "MODS");
-		Element xmlData = new Element("xmlData", mets);
-		Element mod = new Element("mods", mods);
-		Element extension = new Element("extension", mods);
-		Element goobii = new Element("goobi", kitodo);
+		Element dmdSec = createElements();
 
 		String xPath = mapping.getProperty(definition);
 		xpe = fact.compile(xPath, Filters.element(), null, spaceList);
@@ -307,6 +270,7 @@ public class Mods {
 		String bezSignatur = "";
 
 		for (Element v:listHosts) {
+            Element goobi = dmdSec.getChild("mdWrap", mets).getChild("xmlData", mets).getChild("mods", mods).getChild("extension", mods).getChild("goobi", kitodo);
 			if (v.getAttributeValue("Type").equals("501k")) {
 				msHostVolumeInstitution = new Element("metadata", kitodo).setAttribute("name","ms_host_volume_institution").setText(v.getAttributeValue("Value"));
 				host = v.getAttributeValue("Value");
@@ -317,34 +281,30 @@ public class Mods {
 			}
 
 			if (msHostVolumeInstitution != null) {
-				goobii.addContent(msHostVolumeInstitution);
+				goobi.addContent(msHostVolumeInstitution);
 			}
 
 			if (msHostVolumeShelfmark != null) {
-				goobii.addContent(msHostVolumeShelfmark);
+				goobi.addContent(msHostVolumeShelfmark);
 			}
 
 			if (!host.isEmpty() && !bezSignatur.isEmpty()) {
 				Element msHostIdentifyingShelfmark = new Element("metadata", kitodo).setAttribute("name","ms_host_identifying_shelfmark").setText(host + ", " + bezSignatur);
-				goobii.addContent(msHostIdentifyingShelfmark);
+				goobi.addContent(msHostIdentifyingShelfmark);
 			}
 		}
 
 		if ((msHostVolumeInstitution != null) || (msHostVolumeShelfmark != null)) {
+
 			dmdSec.setAttribute("ID", "DMDLOG_" + String.format("%04d", dmd));
 			docMeta.getRootElement().addContent(dmd + 1, dmdSec);
-			dmdSec.addContent(mdWrap);
-			mdWrap.addContent(xmlData);
-			xmlData.addContent(mod);
-			mod.addContent(extension);
-			extension.addContent(goobii);
 			dmd += 1;
 		}
 
 		return dmd;
 	}
 
-	private Element setTitleDoc(String definition, int dmd) {
+	private Element setStructMap(String definition, int dmd) {
 		String xPath = mapping.getProperty(definition);
 		xpe = fact.compile(xPath, Filters.element(), null, spaceList);
 
@@ -355,50 +315,33 @@ public class Mods {
 			boolean found_bezwerk = false, found_bezpers = false, binding = false;
 
 			List<Element> fields = w.getChildren();
-			for(Element f:fields)
-			{
-				if(f.getAttributeValue("Type").equals("5230") && f.getAttributeValue("Value").equals("Einband"))
-				{
+			for(Element f:fields) {
+				if(f.getAttributeValue("Type").equals("5230") && f.getAttributeValue("Value").equals("Einband")) {
 					binding = true;
+					break;
 				}
 			}
 
-			if (binding)
-			{
-				Element we_dmdSec = new Element("dmdSec", mets);
-				Element we_mdWrap = new Element("mdWrap", mets);
-				we_mdWrap.setAttribute("MDTYPE", "MODS");
-				Element we_xmlData = new Element("xmlData", mets);
-				Element we_mod = new Element("mods", mods);
-				Element we_extension = new Element("extension", mods);
-				Element we_goobii = new Element("goobi", kitodo);
+			if (binding) {
+				Element dmdSec = createElements();
 
-				we_extension.addContent(we_goobii);
-				we_mod.addContent(we_extension);
-				we_xmlData.addContent(we_mod);
-				we_mdWrap.addContent(we_xmlData);
-				we_dmdSec.addContent(we_mdWrap);
-
-				Element ms_binding = new Element("metadata", kitodo).setAttribute("name", "TitleDocMain").setText("Einband");
+				//Element ms_binding = new Element("metadata", kitodo).setAttribute("name", "TitleDocMain").setText("Einband");
 				//we_goobii.addContent(ms_binding);
 
 				Element dive = new Element("div", mets).setAttribute("DMDID", "DMDLOG_" + String.format("%04d", dmd)).setAttribute("ID", "LOG_" + String.format("%04d", dmd)).setAttribute("TYPE","slub_Binding");
 
-				if (div0.getContentSize() > 0)
-				{
-					if (!(div0.getChildren().get(div0.getChildren().size() - 1).getAttributeValue("ID").equals("LOG_" + String.format("%04d", dmd))))
-					{
+				if (div0.getContentSize() > 0) {
+					if (!(div0.getChildren().get(div0.getChildren().size() - 1).getAttributeValue("ID").equals("LOG_" + String.format("%04d", dmd)))) {
 						div0.addContent(dive);
 					}
 				}
 
-				if (div0.getContentSize() == 0)
-				{
+				if (div0.getContentSize() == 0) {
 					div0.addContent(dive);
 				}
 
-				we_dmdSec.setAttribute("ID", "DMDLOG_" + String.format("%04d", dmd++));
-				docMeta.getRootElement().addContent(dmd, we_dmdSec);
+                dmdSec.setAttribute("ID", "DMDLOG_" + String.format("%04d", dmd++));
+				docMeta.getRootElement().addContent(dmd, dmdSec);
 
 
 				List<Element> fragments = w.getChildren("Block", hd);
@@ -407,90 +350,61 @@ public class Mods {
 						List<Element> fragContent = frag.getChildren();
 						boolean containFragment = false;
 						for(Element fragElement:fragContent) {
-							if(fragElement.getAttributeValue("Type").equals("5210") && fragElement.getAttributeValue("Value").equals("Fragment"))
-							{
+							if(fragElement.getAttributeValue("Type").equals("5210") && fragElement.getAttributeValue("Value").equals("Fragment")) {
 								containFragment = true;
 							}
 						}
 						if(containFragment) {
 
-							Element wf_dmdSec = new Element("dmdSec", mets);
-							Element wf_mdWrap = new Element("mdWrap", mets);
-							wf_mdWrap.setAttribute("MDTYPE", "MODS");
-							Element wf_xmlData = new Element("xmlData", mets);
-							Element wf_mod = new Element("mods", mods);
-							Element wf_extension = new Element("extension", mods);
-							Element wf_goobii = new Element("goobi", kitodo);
+							dmdSec = createElements();
 
-							wf_extension.addContent(wf_goobii);
-							wf_mod.addContent(wf_extension);
-							wf_xmlData.addContent(wf_mod);
-							wf_mdWrap.addContent(wf_xmlData);
-							wf_dmdSec.addContent(wf_mdWrap);
-
-							Element ms_fragment = new Element("metadata", kitodo).setAttribute("name", "TitleDocMain").setText("Fragment");
+							//Element ms_fragment = new Element("metadata", kitodo).setAttribute("name", "TitleDocMain").setText("Fragment");
 							//wf_goobii.addContent(ms_fragment);
 
 							Element div = new Element("div", mets).setAttribute("DMDID", "DMDLOG_" + String.format("%04d", dmd)).setAttribute("ID", "LOG_" + String.format("%04d", dmd)).setAttribute("TYPE","Fragment");
 
-							if (dive.getContentSize() > 0)
-							{
-								if (!(dive.getChildren().get(dive.getChildren().size() - 1).getAttributeValue("ID").equals("LOG_" + String.format("%04d", dmd))))
-								{
+							if (dive.getContentSize() > 0) {
+								if (!(dive.getChildren().get(dive.getChildren().size() - 1).getAttributeValue("ID").equals("LOG_" + String.format("%04d", dmd)))) {
 									dive.addContent(div);
 								}
 							}
 
-							if (dive.getContentSize() == 0)
-							{
+							if (dive.getContentSize() == 0) {
 								dive.addContent(div);
 							}
 
-							wf_dmdSec.setAttribute("ID", "DMDLOG_" + String.format("%04d", dmd++));
-							docMeta.getRootElement().addContent(dmd, wf_dmdSec);
+                            dmdSec.setAttribute("ID", "DMDLOG_" + String.format("%04d", dmd++));
+							docMeta.getRootElement().addContent(dmd, dmdSec);
 
-							for(Element fragElement:fragContent)
-							{
-								if (fragElement.getAttributeValue("Type").equals("bezwrk") && fragElement.getAttributeValue("Value").equals("Abschrift"))
-								{
-									Element w_dmdSec = new Element("dmdSec", mets);
-									Element w_mdWrap = new Element("mdWrap", mets);
-									w_mdWrap.setAttribute("MDTYPE", "MODS");
-									Element w_xmlData = new Element("xmlData", mets);
-									Element w_mod = new Element("mods", mods);
-									Element w_extension = new Element("extension", mods);
-									Element w_goobii = new Element("goobi", kitodo);
-
-									w_extension.addContent(w_goobii);
-									w_mod.addContent(w_extension);
-									w_xmlData.addContent(w_mod);
-									w_mdWrap.addContent(w_xmlData);
-									w_dmdSec.addContent(w_mdWrap);
+							for(Element fragElement:fragContent) {
+								if (fragElement.getAttributeValue("Type").equals("bezwrk") && fragElement.getAttributeValue("Value").equals("Abschrift")) {
+									dmdSec = createElements();
 
 
 									found_bezwerk = true;
 									List<Element> subfields = fragElement.getChildren();
 									for (Element c : subfields) {
+									    Element goobi = dmdSec.getChild("mdWrap", mets).getChild("xmlData", mets).getChild("mods", mods).getChild("extension", mods).getChild("goobi", kitodo);
 										if (c.getAttributeValue("Type").equals("6930") || c.getAttributeValue("Type").equals("6930gi")) {
 											Element ms_work_title = new Element("metadata", kitodo).setAttribute("name", "TitleDocMain").setText(c.getAttributeValue("Value"));
-											w_goobii.addContent(ms_work_title);
+											goobi.addContent(ms_work_title);
 										}
 										if (c.getAttributeValue("Type").equals("6998")) {
 											Element ms_work_authority = new Element("metadata", kitodo).setAttribute("name", "ms_work_authority").setText("http://d-nb.info/gnd/" + c.getAttributeValue("Value"));
-											w_goobii.addContent(ms_work_authority);
+                                            goobi.addContent(ms_work_authority);
 										}
 										if (c.getAttributeValue("Type").equals("6922")) {
 											Element ms_work_subject = new Element("metadata", kitodo).setAttribute("name", "ms_work_subject").setText(c.getAttributeValue("Value"));
-											w_goobii.addContent(ms_work_subject);
+                                            goobi.addContent(ms_work_subject);
 										}
 									}
 
 									for(Element af:fragContent) {
-										if (af.getAttributeValue("Type").equals("bezper") && af.getAttributeValue("Value").equals("Autorschaft"))
-										{
+										if (af.getAttributeValue("Type").equals("bezper") && af.getAttributeValue("Value").equals("Autorschaft")) {
 											found_bezpers = true;
 											Element ms_work_author = new Element("metadata", kitodo).setAttribute("name", "ms_work_author").setAttribute("type", "person");
 											List<Element> subautfields = af.getChildren();
+                                            Element goobi = dmdSec.getChild("mdWrap", mets).getChild("xmlData", mets).getChild("mods", mods).getChild("extension", mods).getChild("goobi", kitodo);
 											for (Element c : subautfields) {
 												if (c.getAttributeValue("Type").equals("4100") || c.getAttributeValue("Type").equals("4100gi")) {
 													Element firstName = new Element("firstName", kitodo).setText(c.getAttributeValue("Value"));
@@ -507,31 +421,27 @@ public class Mods {
 													ms_work_author.addContent(authorityValue);
 												}
 											}
-											w_goobii.addContent(ms_work_author);
+											goobi.addContent(ms_work_author);
 										}
 									}
 
 
 									Element div1 = new Element("div", mets).setAttribute("DMDID", "DMDLOG_" + String.format("%04d", dmd)).setAttribute("ID", "LOG_" + String.format("%04d", dmd)).setAttribute("TYPE","ContainedWork");
 
-									if (div.getContentSize() > 0)
-									{
-										if (!(div.getChildren().get(div.getChildren().size() - 1).getAttributeValue("ID").equals("LOG_" + String.format("%04d", dmd))))
-										{
+									if (div.getContentSize() > 0) {
+										if (!(div.getChildren().get(div.getChildren().size() - 1).getAttributeValue("ID").equals("LOG_" + String.format("%04d", dmd)))) {
 											div.addContent(div1);
 										}
 									}
 
-									if (div.getContentSize() == 0)
-									{
+									if (div.getContentSize() == 0) {
 										div.addContent(div1);
 									}
 
 
-									if(found_bezwerk||found_bezpers)
-									{
-										w_dmdSec.setAttribute("ID", "DMDLOG_" + String.format("%04d", dmd++));
-										docMeta.getRootElement().addContent(dmd, w_dmdSec);
+									if(found_bezwerk||found_bezpers) {
+                                        dmdSec.setAttribute("ID", "DMDLOG_" + String.format("%04d", dmd++));
+										docMeta.getRootElement().addContent(dmd, dmdSec);
 									}
 								}
 							}
@@ -539,51 +449,38 @@ public class Mods {
 					}
 				}
 
-			} else
-			{
+			} else {
 				for(Element f:fields) {
 
 					if (f.getAttribute("Type") != null && f.getAttribute("Value") != null) {
-						if (f.getAttributeValue("Type").equals("bezwrk") && f.getAttributeValue("Value").equals("Abschrift"))
-						{
-							Element w_dmdSec = new Element("dmdSec", mets);
-							Element w_mdWrap = new Element("mdWrap", mets);
-							w_mdWrap.setAttribute("MDTYPE", "MODS");
-							Element w_xmlData = new Element("xmlData", mets);
-							Element w_mod = new Element("mods", mods);
-							Element w_extension = new Element("extension", mods);
-							Element w_goobii = new Element("goobi", kitodo);
-
-							w_extension.addContent(w_goobii);
-							w_mod.addContent(w_extension);
-							w_xmlData.addContent(w_mod);
-							w_mdWrap.addContent(w_xmlData);
-							w_dmdSec.addContent(w_mdWrap);
+						if (f.getAttributeValue("Type").equals("bezwrk") && f.getAttributeValue("Value").equals("Abschrift")) {
+							Element dmdSec = createElements();
 
 
 							found_bezwerk = true;
 							List<Element> subfields = f.getChildren();
 							for (Element c : subfields) {
+                                Element goobi = dmdSec.getChild("mdWrap", mets).getChild("xmlData", mets).getChild("mods", mods).getChild("extension", mods).getChild("goobi", kitodo);
 								if (c.getAttributeValue("Type").equals("6930") || c.getAttributeValue("Type").equals("6930gi")) {
 									Element ms_work_title = new Element("metadata", kitodo).setAttribute("name", "TitleDocMain").setText(c.getAttributeValue("Value"));
-									w_goobii.addContent(ms_work_title);
+									goobi.addContent(ms_work_title);
 								}
 								if (c.getAttributeValue("Type").equals("6998")) {
 									Element ms_work_authority = new Element("metadata", kitodo).setAttribute("name", "ms_work_authority").setText("http://d-nb.info/gnd/" + c.getAttributeValue("Value"));
-									w_goobii.addContent(ms_work_authority);
+									goobi.addContent(ms_work_authority);
 								}
 								if (c.getAttributeValue("Type").equals("6922")) {
 									Element ms_work_subject = new Element("metadata", kitodo).setAttribute("name", "ms_work_subject").setText(c.getAttributeValue("Value"));
-									w_goobii.addContent(ms_work_subject);
+									goobi.addContent(ms_work_subject);
 								}
 							}
 
 							for(Element af:fields) {
-								if (af.getAttributeValue("Type").equals("bezper") && af.getAttributeValue("Value").equals("Autorschaft"))
-								{
+								if (af.getAttributeValue("Type").equals("bezper") && af.getAttributeValue("Value").equals("Autorschaft")) {
 									found_bezpers = true;
 									Element ms_work_author = new Element("metadata", kitodo).setAttribute("name", "ms_work_author").setAttribute("type", "person");
 									List<Element> subautfields = af.getChildren();
+                                    Element goobi = dmdSec.getChild("mdWrap", mets).getChild("xmlData", mets).getChild("mods", mods).getChild("extension", mods).getChild("goobi", kitodo);
 									for (Element c : subautfields) {
 										if (c.getAttributeValue("Type").equals("4100") || c.getAttributeValue("Type").equals("4100gi")) {
 											Element firstName = new Element("firstName", kitodo).setText(c.getAttributeValue("Value"));
@@ -600,31 +497,27 @@ public class Mods {
 											ms_work_author.addContent(authorityValue);
 										}
 									}
-									w_goobii.addContent(ms_work_author);
+									goobi.addContent(ms_work_author);
 								}
 							}
 
 
 							Element div = new Element("div", mets).setAttribute("DMDID", "DMDLOG_" + String.format("%04d", dmd)).setAttribute("ID", "LOG_" + String.format("%04d", dmd)).setAttribute("TYPE","ContainedWork");
 
-							if (div0.getContentSize() > 0)
-							{
-								if (!(div0.getChildren().get(div0.getChildren().size() - 1).getAttributeValue("ID").equals("LOG_" + String.format("%04d", dmd))))
-								{
+							if (div0.getContentSize() > 0) {
+								if (!(div0.getChildren().get(div0.getChildren().size() - 1).getAttributeValue("ID").equals("LOG_" + String.format("%04d", dmd)))) {
 									div0.addContent(div);
 								}
 							}
 
-							if (div0.getContentSize() == 0)
-							{
+							if (div0.getContentSize() == 0) {
 								div0.addContent(div);
 							}
 
 
-							if(found_bezwerk||found_bezpers)
-							{
-								w_dmdSec.setAttribute("ID", "DMDLOG_" + String.format("%04d", dmd++));
-								docMeta.getRootElement().addContent(dmd, w_dmdSec);
+							if(found_bezwerk||found_bezpers) {
+								dmdSec.setAttribute("ID", "DMDLOG_" + String.format("%04d", dmd++));
+								docMeta.getRootElement().addContent(dmd, dmdSec);
 							}
 						}
 					}
@@ -651,7 +544,8 @@ public class Mods {
 			outXML.output(docMeta, new FileOutputStream(meta));
 			logger.debug("meta.xml successfully created.");
 		} catch (IOException e) {
-			e.printStackTrace();
+		    e.printStackTrace();
+			logger.error("meta.xml could not created successfully.", e.fillInStackTrace());
 		}
 	}
 
@@ -672,11 +566,21 @@ public class Mods {
 		setElement("lokalisierung", "ms_place_of_origin");
 		setDate("datiert");
 		setDating("datierung");
-		setAuthor("autor");
-		setPersons("personen");
-		setInstitution("sozietaet");
+		List<String> listName = new ArrayList<>();
+		listName.add("4100");
+		listName.add("4100gi");
+		List<String> listAuthority = new ArrayList<>();
+		listAuthority.add("z001");
+		setResponsibility("autor", "ms_author", listName, listAuthority);
+		listAuthority.add("y001");
+		setResponsibility("personen", "ms_previous_owner_person", listName, listAuthority);
+		listName.clear();
+		listAuthority.clear();
+		listName.add("4600");
+		listAuthority.add("4998");
+		setResponsibility("sozietaet", "ms_previous_owner_institution", listName, listAuthority);
 		int dmd = setHost("verwalter");
-		Element div0 = setTitleDoc("werk", dmd);
+		Element div0 = setStructMap("werk", dmd);
 		setAttribute("quelle", "ms_record_origin");
 		setElement();
 		addLogical(div0);
