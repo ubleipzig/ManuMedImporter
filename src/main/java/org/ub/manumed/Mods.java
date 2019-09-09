@@ -188,6 +188,24 @@ public class Mods {
 		}
 	}
 
+	private Element setName(Element in, Element out) {
+		Element firstName = new Element("firstName", kitodo).setText(in.getAttributeValue("Value"));
+		Element displayName = new Element("displayName", kitodo).setText(in.getAttributeValue("Value"));
+		out.addContent(firstName);
+		out.addContent(displayName);
+		return out;
+	}
+
+	private Element setAuthority(Element in, Element out) {
+		Element authorityID = new Element("authorityID", kitodo).setText("gnd");
+		Element authorityURI = new Element("authorityURI", kitodo).setText("http://d-nb.info/gnd/");
+		Element authorityValue = new Element("authorityValue", kitodo).setText("http://d-nb.info/gnd/" + in.getAttributeValue("Value"));
+		out.addContent(authorityID);
+		out.addContent(authorityURI);
+		out.addContent(authorityValue);
+		return out;
+	}
+
 	private void setResponsibility(String definition, String tag, List<String> listName, List<String> listAuthority) {
         String xPath = mapping.getProperty(definition);
         xpe = fact.compile(xPath, Filters.element(), null, spaceList);
@@ -199,36 +217,20 @@ public class Mods {
             for(Element c:listChildren) {
                 if(listName.size() == 1) {
                     if (c.getAttributeValue("Type").equals(listName.get(0))) {
-                        Element firstName = new Element("firstName", kitodo).setText(c.getAttributeValue("Value"));
-                        Element displayName = new Element("displayName", kitodo).setText(c.getAttributeValue("Value"));
-                        msResponse.addContent(firstName);
-                        msResponse.addContent(displayName);
+                        msResponse = setName(c, msResponse);
                     }
                 } else {
                     if (c.getAttributeValue("Type").equals(listName.get(0)) || c.getAttributeValue("Type").equals(listName.get(1))) {
-                        Element firstName = new Element("firstName", kitodo).setText(c.getAttributeValue("Value"));
-                        Element displayName = new Element("displayName", kitodo).setText(c.getAttributeValue("Value"));
-                        msResponse.addContent(firstName);
-                        msResponse.addContent(displayName);
+						msResponse = setName(c, msResponse);
                     }
                 }
                 if(listAuthority.size() == 1) {
                     if (c.getAttributeValue("Type").equals(listAuthority.get(0))) {
-                        Element authorityID = new Element("authorityID", kitodo).setText("gnd");
-                        Element authorityURI = new Element("authorityURI", kitodo).setText("http://d-nb.info/gnd/");
-                        Element authorityValue = new Element("authorityValue", kitodo).setText("http://d-nb.info/gnd/" + c.getAttributeValue("Value"));
-                        msResponse.addContent(authorityID);
-                        msResponse.addContent(authorityURI);
-                        msResponse.addContent(authorityValue);
+                        msResponse = setAuthority(c, msResponse);
                     }
                 } else {
                     if (c.getAttributeValue("Type").equals(listAuthority.get(0)) || c.getAttributeValue("Type").equals(listAuthority.get(1))) {
-                        Element authorityID = new Element("authorityID", kitodo).setText("gnd");
-                        Element authorityURI = new Element("authorityURI", kitodo).setText("http://d-nb.info/gnd/");
-                        Element authorityValue = new Element("authorityValue", kitodo).setText("http://d-nb.info/gnd/" + c.getAttributeValue("Value"));
-                        msResponse.addContent(authorityID);
-                        msResponse.addContent(authorityURI);
-                        msResponse.addContent(authorityValue);
+						msResponse = setAuthority(c, msResponse);
                     }
                 }
             }
@@ -304,6 +306,69 @@ public class Mods {
 		return dmd;
 	}
 
+	private void setStructureElements(Element divRoot, Element field, int dmd) {
+		if(field.getAttributeValue("Type").equals("5230") && field.getAttributeValue("Value").equals("Einband")) {
+			Element div = new Element("div", mets).setAttribute("DMDID", "DMDLOG_" + String.format("%04d", dmd)).setAttribute("ID", "LOG_" + String.format("%04d", dmd)).setAttribute("TYPE","slub_Binding");
+			divRoot.addContent(div);
+		} else if(field.getAttributeValue("Type").equals("5210") && field.getAttributeValue("Value").equals("Fragment")) {
+			Element div = new Element("div", mets).setAttribute("DMDID", "DMDLOG_" + String.format("%04d", dmd)).setAttribute("ID", "LOG_" + String.format("%04d", dmd)).setAttribute("TYPE","Fragment");
+			divRoot.addContent(div);
+		} else if(field.getAttributeValue("Type").equals("bezwrk") && field.getAttributeValue("Value").equals("Abschrift")) {
+			Element div = new Element("div", mets).setAttribute("DMDID", "DMDLOG_" + String.format("%04d", dmd)).setAttribute("ID", "LOG_" + String.format("%04d", dmd)).setAttribute("TYPE","ContainedWork");
+			divRoot.addContent(div);
+			if(!field.getChildren().isEmpty()) {
+				for(Element script:field.getChildren()) {
+					if (script.getAttributeValue("Type").equals("6930") || script.getAttributeValue("Type").equals("6930gi")) {
+						Element msWorkTitle = new Element("metadata", kitodo).setAttribute("name", "TitleDocMain").setText(script.getAttributeValue("Value"));
+					}
+					if (script.getAttributeValue("Type").equals("6998")) {
+						Element msWorkAuthority = new Element("metadata", kitodo).setAttribute("name", "ms_work_authority").setText("http://d-nb.info/gnd/" + script.getAttributeValue("Value"));
+					}
+					if (script.getAttributeValue("Type").equals("6922")) {
+						Element msWorkSubject = new Element("metadata", kitodo).setAttribute("name", "ms_work_subject").setText(script.getAttributeValue("Value"));
+					}
+				}
+			}
+		} else if(field.getAttributeValue("Type").equals("bezper") && field.getAttributeValue("Value").equals("Autorschaft")) {
+			Element div = new Element("div", mets).setAttribute("DMDID", "DMDLOG_" + String.format("%04d", dmd)).setAttribute("ID", "LOG_" + String.format("%04d", dmd)).setAttribute("TYPE","ContainedWork");
+			divRoot.addContent(div);
+			if(!field.getChildren().isEmpty()) {
+				Element msWorkAuthor = new Element("metadata", kitodo).setAttribute("name", "ms_work_author").setAttribute("type", "person");
+				for(Element author:field.getChildren()) {
+					if (author.getAttributeValue("Type").equals("4100") || author.getAttributeValue("Type").equals("4100gi")) {
+						msWorkAuthor = setName(author, msWorkAuthor);
+					}
+					if (author.getAttributeValue("Type").equals("z001")) {
+						msWorkAuthor = setAuthority(author, msWorkAuthor);
+					}
+				}
+			}
+		}
+	}
+
+	private void setStructure(String definition, int dmd) {
+		String xPath = mapping.getProperty(definition);
+		xpe = fact.compile(xPath, Filters.element(), null, spaceList);
+		List<Element> listBlocks = xpe.evaluate(docHida);
+
+		Element divRoot = new Element("div", mets).setAttribute("DMDID","DMDLOG_0000").setAttribute("ID","LOG_0000").setAttribute("TYPE","Manuscript");
+
+		for(Element block:listBlocks) {
+			for(Element field:block.getChildren()) {
+				if(field.getName().equals("Block")) {
+					for(Element child:field.getChildren()) {
+						setStructureElements(divRoot, field, dmd);
+						dmd++;
+					}
+				} else {
+					setStructureElements(divRoot, field, dmd);
+					dmd++;
+				}
+			}
+		}
+	}
+
+	/*
 	private Element setStructMap(String definition, int dmd) {
 		String xPath = mapping.getProperty(definition);
 		xpe = fact.compile(xPath, Filters.element(), null, spaceList);
@@ -342,7 +407,6 @@ public class Mods {
 
                 dmdSec.setAttribute("ID", "DMDLOG_" + String.format("%04d", dmd++));
 				docMeta.getRootElement().addContent(dmd, dmdSec);
-
 
 				List<Element> fragments = w.getChildren("Block", hd);
 				if(!fragments.isEmpty()) {
@@ -528,6 +592,8 @@ public class Mods {
 		return div0;
 	}
 
+	 */
+
 	private void addLogical(Element div0) {
 		for(Element sM: docMeta.getRootElement().getChildren("structMap", mets))
 		{
@@ -580,10 +646,10 @@ public class Mods {
 		listAuthority.add("4998");
 		setResponsibility("sozietaet", "ms_previous_owner_institution", listName, listAuthority);
 		int dmd = setHost("verwalter");
-		Element div0 = setStructMap("werk", dmd);
+		setStructure("werk", dmd);
 		setAttribute("quelle", "ms_record_origin");
 		setElement();
-		addLogical(div0);
+		//addLogical(div0);
 		out(meta);
 	}
 
