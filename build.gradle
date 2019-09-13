@@ -1,6 +1,7 @@
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
 apply plugin: 'application'
+apply plugin: 'idea'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
@@ -18,44 +19,16 @@ tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
 }
 
-task mods(type: Jar, dependsOn: [':compileJava', ':processResources']) {
+task importer(type: Jar, dependsOn: [':compileJava', ':processResources']) {
 
-	archiveBaseName = "ModsImport"
+	archiveBaseName = "Import"
 	
-	mainClassName = "org.ub.manumed.Mods"
-	
-	from files(sourceSets.main.output.classesDirs)
-	from {configurations.compile.collect {it.isDirectory() ? it : zipTree(it) }}
-	manifest {
-		attributes 'Main-Class': 'org.ub.manumed.Mods'
-	}
-
-}
-
-task mets(type: Jar, dependsOn: [':compileJava', ':processResources']) {
-
-	archiveBaseName = "MetsImport"
-	
-	mainClassName = "org.ub.manumed.Mets"
+	mainClassName = "org.ub.manumed.Importer"
 	
 	from files(sourceSets.main.output.classesDirs)
 	from {configurations.compile.collect {it.isDirectory() ? it : zipTree(it) }}
 	manifest {
-		attributes 'Main-Class': 'org.ub.manumed.Mets'
-	}
-
-}
-
-task repair(type: Jar, dependsOn: [':compileJava', ':processResources']) {
-
-	archiveBaseName = "repairMods"
-	
-	mainClassName = "org.ub.manumed.RepairMods"
-	
-	from files(sourceSets.main.output.classesDirs)
-	from {configurations.compile.collect {it.isDirectory() ? it : zipTree(it) }}
-	manifest {
-		attributes 'Main-Class': 'org.ub.manumed.RepairMods'
+		attributes 'Main-Class': 'org.ub.manumed.Importer'
 	}
 
 }
@@ -65,7 +38,6 @@ dependencies {
 	compile 'org.jdom:jdom2:2.0.6'
 	compile group: 'jaxen', name: 'jaxen', version: '1.1.6'
 	compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
-	compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.28'
-	testCompile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.28'
-
+	compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.12.1'
+	compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.12.1'
 }
