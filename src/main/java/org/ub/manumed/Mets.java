@@ -18,17 +18,17 @@ class Mets {
 	private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass().getSimpleName());
 
 	private String strMap = "structMap";
+	private int fnCount = 0;
 
 	Mets(File rename, String imagePath, String meta) {
 		File rootPath = new File(imagePath);
 		HashMap<String, String> nameMap = doMapping(rename);
-		int id = 0;
-		ArrayList<File> fileList = getImageList(nameMap, rootPath, id);
+		ArrayList<File> fileList = getImageList(nameMap, rootPath);
 		Element fileGrp = setFileGrp();
 		Element dmdPhys = setDmdPhys();
 		Element structMap = setStructMap(dmdPhys);
 		Element structLink = setStructLink();
-		Element fileSec = setFileSec(fileList, nameMap, id, fileGrp, dmdPhys, structLink);
+		Element fileSec = setFileSec(fileList, nameMap, fileGrp, dmdPhys, structLink);
 		print(meta, structMap, fileSec, structLink);
 	}
 
@@ -43,6 +43,12 @@ class Mets {
 		print(meta, structMap, fileSec, structLink);
 	}
 
+	/**
+	 * mapping between old file names and 'Kitodo' confirmed names
+	 *
+	 * @param renameFile File
+	 * @return HashMap<String, String>
+	 */
 	private HashMap<String, String> doMapping(File renameFile) {
 		HashMap<String, String> map = new HashMap<>();
         try {
@@ -61,34 +67,25 @@ class Mets {
         } catch (IOException e) {
             logger.error("Could not map images.", e.fillInStackTrace());
         }
-        /*
-		try (FileInputStream fos = new FileInputStream(renameFile)) {
-			byte[] buffer = new byte[fos.available()];
-			fos.read(buffer);
 
-			String data = new String(buffer);
-			for(String line:data.split("\n")) {
-				line = line.substring(7).trim();
-				String tifOld = line.split(" to ")[0];
-				String tifNew = line.split(" to ")[1];
-
-				tifOld = tifOld.substring(tifOld.lastIndexOf(File.separator) + 1);
-				tifNew = tifNew.substring(tifNew.lastIndexOf(File.separator) + 1);
-
-				map.put(tifNew, tifOld);
-			}
-		} catch (IOException e) {
-			logger.error("Could not map images.", e.fillInStackTrace());
-		}
-
-         */
 		return map;
 	}
 
+	/**
+	 * creates Element dmdPhys
+	 *
+	 * @return Element
+	 */
 	private Element setDmdPhys() {
 		return new Element("div", mets).setAttribute("DMDID","DMDPHYS_0000").setAttribute("ID","PHYS_0000").setAttribute("TYPE","BoundBook");
 	}
 
+	/**
+	 * creates Element structMap
+	 *
+	 * @param dmdPhys Element
+	 * @return Element
+	 */
 	private Element setStructMap(Element dmdPhys) {
 		Element structMap = new Element(strMap, mets);
 		structMap.setAttribute("TYPE","PHYSICAL");
@@ -97,6 +94,11 @@ class Mets {
 		return structMap;
 	}
 
+	/**
+	 * creates Element fileGrp
+	 *
+	 * @return Element
+	 */
 	private Element setFileGrp() {
 		Element fileGrp = new Element("fileGrp", mets);
 		fileGrp.setAttribute("USE","LOCAL");
@@ -104,10 +106,25 @@ class Mets {
 		return fileGrp;
 	}
 
+	/**
+	 * creates Element structLink
+	 *
+	 * @return Element
+	 */
 	private Element setStructLink() {
 		return new Element("structLink", mets);
 	}
 
+	/**
+	 * fill content of Element structLink
+	 *
+	 * @param x int
+	 * @param f File
+	 * @param fileGrp Element
+	 * @param oldInfo String
+	 * @param dmdPhys Element
+	 * @param structLink Element
+	 */
 	private void setFileID(int x, File f, Element fileGrp, String oldInfo, Element dmdPhys, Element structLink) {
 		String fileID = getIndex(x);
 		Element file = new Element("file", mets).setAttribute("ID","FILE_" + fileID).setAttribute("MIMETYPE","image/tiff");
@@ -124,7 +141,17 @@ class Mets {
 		structLink.addContent(smLink);
 	}
 
-	private Element setFileSec(ArrayList<File> fileList, HashMap<String, String> nameMap, int id, Element fileGrp, Element dmdPhys, Element structLink) {
+	/**
+	 * fill content of Element fileSec with file name mapping
+	 *
+	 * @param fileList ArrayList<File>
+	 * @param nameMap HashMap<String,String>
+	 * @param fileGrp Element
+	 * @param dmdPhys Element
+	 * @param structLink Element
+	 * @return Element
+	 */
+	private Element setFileSec(ArrayList<File> fileList, HashMap<String, String> nameMap, Element fileGrp, Element dmdPhys, Element structLink) {
 		Element fileSec = new Element("fileSec", mets);
 		int x = 0;
 
@@ -132,8 +159,14 @@ class Mets {
 			if(f.isFile() && f.getName().toLowerCase().endsWith(".tif")) {
 				x++;
 
-				String qualifiedName = nameMap.get(f.getName());
-				String oldInfo = qualifiedName.substring(id, qualifiedName.length() - 4);
+				String oldInfo = "";
+				for(String key:nameMap.keySet()) {
+					if(f.getName().equals(key.substring(key.lastIndexOf('/') + 1))) {
+						String qualifiedName = nameMap.get(key);
+						oldInfo = qualifiedName.substring(fnCount, qualifiedName.length() - 4);
+						break;
+					}
+				}
 
 				int j = 0;
 				String z = "0";
@@ -145,6 +178,9 @@ class Mets {
 					j++;
 				}
 				oldInfo = oldInfo.substring(j);
+				if(oldInfo.contains("_")) {
+					oldInfo = oldInfo.substring(oldInfo.indexOf('_') + 1);
+				}
 
 				setFileID(x, f, fileGrp, oldInfo, dmdPhys, structLink);
 			}
@@ -154,6 +190,15 @@ class Mets {
 		return fileSec;
 	}
 
+	/**
+	 * fill content of Element fileSec without file name mapping
+	 *
+	 * @param fileList ArrayList<File>
+	 * @param fileGrp Element
+	 * @param dmdPhys Element
+	 * @param structLink Element
+	 * @return Element
+	 */
 	private Element setFileSec(ArrayList<File> fileList, Element fileGrp, Element dmdPhys, Element structLink) {
 		Element fileSec = new Element("fileSec", mets);
 		int x = 0;
@@ -170,6 +215,12 @@ class Mets {
 		return fileSec;
 	}
 
+	/**
+	 * create file path
+	 *
+	 * @param absolutePath String
+	 * @return String
+	 */
 	private String makeURI(String absolutePath) {
 		String result = absolutePath;
 		if(absolutePath.startsWith("/")) {
@@ -184,10 +235,22 @@ class Mets {
 		return result;
 	}
 
+	/**
+	 * fill integer with leading zeros
+	 *
+	 * @param i int
+	 * @return String
+	 */
 	private String getIndex(int i) {
 		return String.format("%04d", i);
 	}
 
+	/**
+	 * sort list
+	 *
+	 * @param rootPath File
+	 * @return ArrayList<File>
+	 */
 	private ArrayList<File> sortList(File rootPath) {
 	    ArrayList<File> fileList = new ArrayList<>();
 	    File[] files = rootPath.listFiles();
@@ -202,37 +265,41 @@ class Mets {
         return fileList;
     }
 
-	private ArrayList<File> getImageList(HashMap<String, String> nameMap, File rootPath, int id) {
+	/**
+	 * get size to form order labels
+	 *
+	 * @param nameMap HashMap<String, String>
+	 * @param rootPath File
+	 * @return ArrayList<File>
+	 */
+	private ArrayList<File> getImageList(HashMap<String, String> nameMap, File rootPath) {
 		ArrayList<File> fileList = sortList(rootPath);
 
-		HashMap<String, Integer> counterTable = new HashMap<>();
-		for(String oldFileName : nameMap.values()) {
-			String[] filenameParts = oldFileName.split("_");
-			for (String filenamePart : filenameParts) {
-				if (counterTable.containsKey(filenamePart)) {
-					counterTable.put(filenamePart, counterTable.get(filenamePart) + 1);
+		for(String oldFileName:nameMap.values()) {
+			fnCount = oldFileName.lastIndexOf('/') + 1;
+			String oldFN = oldFileName.substring(fnCount);
+			String[] fnParts = oldFN.split("_");
+			for(String fnPart:fnParts) {
+				if(fnPart.matches("\\d*")) {
+					fnCount += fnPart.length() + 1;
+					break;
 				} else {
-					counterTable.put(filenamePart, 1);
+					fnCount += fnPart.length() + 1;
 				}
 			}
 		}
 
-		for(Map.Entry<String, Integer> entry : counterTable.entrySet()) {
-		    if(entry.getValue() == nameMap.values().size()) {
-		        id += (entry.getKey() + "_").length();
-            }
-        }
-		/*
-		for(String part : counterTable.keySet())
-		{
-			if(counterTable.get(part) == nameMap.values().size())
-				id += (part + "_").length();
-		}
-
-		 */
 		return fileList;
 	}
 
+	/**
+	 * output Mets part to xml file
+	 *
+	 * @param meta String
+	 * @param structMap Element
+	 * @param fileSec Element
+	 * @param structLink Element
+	 */
 	private void print(String meta, Element structMap, Element fileSec, Element structLink) {
 		try {
 			int p = -1;
@@ -244,7 +311,6 @@ class Mets {
 
 			Element dmdPhys = new Mods().getElement("dmdphys");
 			docMeta.getRootElement().addContent(docMeta.getRootElement().indexOf(dmdPhys) + 1 , fileSec);
-            //docMeta.getRootElement().addContent(p - 1, fileSec);
 
 			for(Element sMap : docMeta.getRootElement().getChildren(strMap, mets)) {
 				if(sMap.getAttributeValue("TYPE").equals("PHYSICAL")) {

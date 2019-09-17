@@ -32,13 +32,19 @@ public class Importer {
     static Namespace kitodo = Namespace.getNamespace("goobi","http://meta.goobi.org/v1.5.1/");
     static Namespace mets = Namespace.getNamespace("mets","http://www.loc.gov/METS/");
     static Namespace mods = Namespace.getNamespace("mods", "http://www.loc.gov/mods/v3");
-    static Namespace hd = Namespace.getNamespace("h1","http://www.startext.de/HiDA/DefService/XMLSchema");
+    private static Namespace hd = Namespace.getNamespace("h1","http://www.startext.de/HiDA/DefService/XMLSchema");
     static Namespace xlink = Namespace.getNamespace("xlink","http://www.w3.org/1999/xlink");
     static ArrayList<Namespace> spaceList = new ArrayList<>();
 
     static XPathFactory fact = XPathFactory.instance();
     static XPathExpression xpe;
 
+    /**
+     * load Mets/Mods files and add namespaces
+     *
+     * @param meta String
+     * @param hida String
+     */
     private static void build(String meta, String hida) {
         try {
             docMeta = new SAXBuilder().build(new File(meta));
@@ -54,6 +60,11 @@ public class Importer {
         }
     }
 
+    /**
+     * load properties file
+     *
+     * @param map String
+     */
     private static void loadProperties(String map) {
         try {
             mapping.load(new FileInputStream(map));
@@ -111,6 +122,6 @@ public class Importer {
         } else {
             new Mets(images, meta);
         }
-        //new Mods(meta, hida, map);
+        new Mods(meta);
     }
 }
