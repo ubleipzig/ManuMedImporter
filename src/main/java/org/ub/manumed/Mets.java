@@ -160,9 +160,9 @@ class Mets {
 				x++;
 
 				String oldInfo = "";
-				for(String key:nameMap.keySet()) {
-					if(f.getName().equals(key.substring(key.lastIndexOf('/') + 1))) {
-						String qualifiedName = nameMap.get(key);
+				for(Map.Entry<String, String> entry:nameMap.entrySet()) {
+					if(f.getName().equals(entry.getKey().substring(entry.getKey().lastIndexOf('/') + 1))) {
+						String qualifiedName = entry.getValue();
 						oldInfo = qualifiedName.substring(fnCount, qualifiedName.length() - 4);
 						break;
 					}
