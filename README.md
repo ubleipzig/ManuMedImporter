@@ -7,7 +7,7 @@ A CLI tool that transforms raw data from Manuscripta Mediaevalia into internal M
 
 ## Usage
 ```bash
-/usr/bin/java -Dlog4j.configurationFile=log4j2ConfigFile -jar -m xmlOutputFile -i imageFolder -h hidaFile -c propertiesFile -r imagePathMapping
+/usr/bin/java -Dlog4j.configurationFile=log4j2ConfigFile -jar Import.jar -m xmlOutputFile -i imageFolder -h hidaFile -c propertiesFile -r imagePathMapping
 ```
 
 | Argument | Description | Example     |
